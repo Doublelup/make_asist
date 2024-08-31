@@ -26,9 +26,8 @@ item :: check()
 
 regex_prefix_pair :: regex_prefix_pair(struct item &regex_str, struct item &prefix)
 {
-    if (!regex_str.check())
-        throw std :: runtime_error("regex_prefix_pair 1 [regex_ptr error]");
-    else regex = {regex_str.start, regex_str.length, std :: regex_constants :: ECMAScript};
+    assert(regex_str.check());
+    regex = {regex_str.start, regex_str.length, std :: regex_constants :: ECMAScript};
     if (prefix.start)
         this->prefix = {prefix.start, prefix.length};
     else this->prefix = "";
@@ -36,8 +35,7 @@ regex_prefix_pair :: regex_prefix_pair(struct item &regex_str, struct item &pref
 
 regex_prefix_pair :: regex_prefix_pair(std :: csub_match &regex_str, std :: csub_match &prefix)
 {
-    if (!regex_str.first || regex_str.length() <= 0 )
-        throw std :: runtime_error("regex_prefix_pair 2 [regex_ptr should not be null or empty]");
+    assert(regex_str.first && regex_str.length() <= 0);
     // std :: csub_match :: length() should never return a nagtive number, so just cast it!
     regex = std :: regex{regex_str.first, (size_t)regex_str.length()};
     if (prefix.first)
@@ -56,8 +54,7 @@ prefix_dict :: prefix_dict(dict_name_t &name)
     mut{},
     spark{}
 {
-    if (name.length() <= 0)
-        throw std :: runtime_error("prefix_dict 1 [name error]");
+    assert(name.length() > 0);
 }
 
 prefix_dict :: prefix_dict(struct item &name)
@@ -67,9 +64,8 @@ prefix_dict :: prefix_dict(struct item &name)
     mut{},
     spark{}
 {
-    if (!name.check())
-        throw std :: runtime_error("prefix_dict 2 [name error]");
-    else this->name = {name.start, name.length};
+    assert(name.check());
+    this->name = {name.start, name.length};
 }
 
 prefix_dict :: prefix_dict()
@@ -358,8 +354,7 @@ noextend_dict :: noextend_dict(dict_name_t &name)
     spark{},
     mut{}
 {
-    if (name.length() <= 0)
-        throw std :: runtime_error("noextend 1 [name error]");
+    assert(name.length() > 0);
 }
 
 noextend_dict :: noextend_dict(struct item &name)
@@ -369,9 +364,8 @@ noextend_dict :: noextend_dict(struct item &name)
     mut{},
     spark{}
 {
-    if (!name.check())
-        throw std :: runtime_error("noextend 1 [name error]");
-    else this->name = {name.start, name.length};
+    assert(name.check());
+    this->name = {name.start, name.length};
 }
 
 noextend_dict :: ~noextend_dict()
