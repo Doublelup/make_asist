@@ -9,7 +9,8 @@
 #include <assert.h>
 #include <cstring>
 #include <stdexcept>
-#include <semaphore.h>
+#include <condition_variable>
+#include <mutex>
 
 namespace dicts{
     typedef std :: string prefix_t, dict_name_t;
@@ -18,6 +19,7 @@ namespace dicts{
         const char *start;
         size_t length;
         item(const char *start, size_t length);
+        item(std :: csub_match &match);
         ~item();
         bool check(); // check only when need
     };
@@ -37,14 +39,13 @@ namespace dicts{
 
     typedef std :: vector<struct regex_prefix_pair*> prefix_pairs_t;
     class prefix_dict{
-        protected:
-            void finish();
         private:
             std :: atomic_bool ready;
             prefix_pairs_t pairs;
             enum dict_type type;
             dict_name_t name;
-            sem_t spark;
+            std :: condition_variable spark;
+            std :: mutex mut;
             void wait_for_ready();
         public:
             // Promise that prefix_dict :: full check the state of dict.
@@ -60,6 +61,7 @@ namespace dicts{
             bool is_ready();
             // Functions below modifies the dict, so those functions can be
             // invoked only when the dict is not ready.
+            void finish();
             void add_item(struct item &pattern_str, struct item &prefix);
             void add_pairs(prefix_pairs_t *newpairs); // Don't forget to free newpairs!
             void add_pairs(prefix_pairs_t &newpairs);
@@ -96,11 +98,65 @@ namespace dicts{
             ref_prefix_dicts(bool modifiable, ref_prefix_dicts &source);
             ~ref_prefix_dicts();
             bool undefdir(dict_name_t &name);
+            bool undefdir(struct item &name);
             const std :: string full(struct item &item, bool &success);
             bool exist(dict_name_t &name);
     };
 
-    
+    class noextend_dict{
+        typedef std :: vector<std :: regex> noextend_list_t;
+        private:
+            std :: atomic_bool ready;
+            noextend_list_t list;
+            dict_name_t name;
+            enum dict_type type;
+            std :: condition_variable spark;
+            std :: mutex mut;
+            void wait_for_ready();
+        public:
+            bool match(struct item &item);
+            noextend_dict();
+            noextend_dict(dict_name_t &name);
+            noextend_dict(struct item &name);
+            ~noextend_dict();
+            enum dict_type get_type();
+            const std :: string &get_name();
+            bool is_ready();
+            void finish();
+            void add_item(struct item &item);
+            void add_list(noextend_list_t *list);
+            void add_list(noextend_list_t &list);
+    };
+    class noextend_dicts{
+        protected:
+            struct dict_with_state{
+                noextend_dict *dict;
+                bool state;
+            };
+            std :: vector<struct dict_with_state> *shelf;
+            std :: map<dict_name_t, size_t> *name_index_map;
+            const bool modifiable;
+        public:
+            noextend_dicts(bool modifiable);
+            ~noextend_dicts();
+            void noextend(noextend_dict *dict);
+    };
+
+    class loc_noextend_dicts : public noextend_dicts{
+        public:
+            loc_noextend_dicts();
+            ~loc_noextend_dicts();
+    };
+
+    class ref_noextend_dicts : public noextend_dicts{
+        public:
+            ref_noextend_dicts();
+            ref_noextend_dicts(bool modifiable, ref_noextend_dicts &source);
+            ~ref_noextend_dicts();
+            bool unnoextend(dict_name_t &name);
+            bool unnoextend(struct item &name);
+            bool match(struct item &item);
+    };
 };
 
 class Context{
