@@ -8,7 +8,7 @@ item :: item(const char *s, size_t l)
 {
 }
 
-item :: item(std :: csub_match &match)
+item :: item(const std :: csub_match &match)
 :   start{match.first},
     length{(size_t)(match.second - match.first)}
 {
@@ -33,9 +33,9 @@ regex_prefix_pair :: regex_prefix_pair(struct item &regex_str, struct item &pref
     else this->prefix = "";
 }
 
-regex_prefix_pair :: regex_prefix_pair(std :: csub_match &regex_str, std :: csub_match &prefix)
+regex_prefix_pair :: regex_prefix_pair(const std :: csub_match &regex_str, const std :: csub_match &prefix)
 {
-    assert(regex_str.first && regex_str.length() <= 0);
+    assert(regex_str.first && regex_str.length() > 0);
     // std :: csub_match :: length() should never return a nagtive number, so just cast it!
     regex = std :: regex{regex_str.first, (size_t)regex_str.length()};
     if (prefix.first)
@@ -115,6 +115,7 @@ prefix_dict :: finish()
     assert(!is_ready());
     std :: unique_lock<std :: mutex> lock{mut};
     ready = true;
+    spark.notify_all();
     return;
 }
 
@@ -128,26 +129,24 @@ prefix_dict :: is_ready()
 
 
 
-const std :: string
-prefix_dict :: full(struct item &item, bool &success)
+void
+prefix_dict :: get_prefix(struct item &item, bool &success, std :: string **rvl)
 {
+    assert(!*rvl);
+    assert(!success);
     wait_for_ready();
-    std :: string ret = {};
     std :: string sitem = {item.start, item.length};
-    for (size_t i = pairs.size()-1; i >= 0; --i)
+    int dict_size = pairs.size();
+    for (int i = 0; i < dict_size; ++i)
     {
         if (std :: regex_match(sitem, pairs[i]->regex))
         {
-            ret = pairs[i]->prefix;
+            *rvl = new std :: string{pairs[i]->prefix};
+            success = true;
             break;
         }
     }
-    if (ret.empty()){
-        success = false;
-    }
-    else success = true;
-    ret += sitem;
-    return ret;
+    return;
 }
 
 void
@@ -318,20 +317,26 @@ ref_prefix_dicts :: exist(dict_name_t &name)
     return ret;
 }
 
-const std :: string
+const std :: string*
 ref_prefix_dicts :: full(struct item &item, bool &success)
 {
     assert(item.check());
     assert(!modifiable);
     assert(!success);
-    std :: string ret;
-    for (size_t i = shelf->size()-1; i >= 0; --i)
+    std :: string *ret = NULL;
+    for (int i = shelf->size()-1; i >= 0; --i)
     {
         if ((*shelf)[i].state)
         {
-            ret = (*shelf)[i].dict->full(item, success);
+            (*shelf)[i].dict->get_prefix(item, success, &ret);
             if(success)break;
         }
+    }
+    if (!ret){
+        ret = new std :: string{item.start, item.length};
+    }
+    else{
+        *ret += std :: string{item.start, item.length};
     }
     return ret;
 }
@@ -418,7 +423,7 @@ noextend_dict :: match(struct item &item)
     wait_for_ready();
     bool ret = false;
     std :: string sitem = {item.start, item.length};
-    for (size_t i= list.size()-1; i >= 0; --i)
+    for (int i= list.size()-1; i >= 0; --i)
     {
         if (std :: regex_match(sitem, list[i]))
         {
@@ -455,7 +460,7 @@ noextend_dict :: add_list(noextend_list_t &newlist)
     return;
 }
 
-noextend_dicts :: noextend_dicts(bool modifilalbe)
+noextend_dicts :: noextend_dicts(bool modifiable)
 :   shelf{NULL},
     name_index_map{NULL},
     modifiable{modifiable}
@@ -506,6 +511,13 @@ loc_noextend_dicts :: ~loc_noextend_dicts()
     }
     delete shelf;
     delete name_index_map;
+}
+
+ref_noextend_dicts :: ref_noextend_dicts()
+:   noextend_dicts{true}
+{
+    shelf = new std :: vector<struct dict_with_state>{};
+    name_index_map = new std :: map<dict_name_t, size_t>{};
 }
 
 ref_noextend_dicts :: ref_noextend_dicts(bool modifiable, ref_noextend_dicts &source)
@@ -582,7 +594,7 @@ ref_noextend_dicts :: match(struct item &item)
     assert(item.check());
     assert(!modifiable);
     bool ret = false;
-    for (size_t i = shelf->size()-1; i >= 0; --i)
+    for (int i = shelf->size()-1; i >= 0; --i)
     {
         if ((*shelf)[i].state)
         {

@@ -8,7 +8,7 @@
 #include <atomic>
 #include <assert.h>
 #include <cstring>
-#include <stdexcept>
+// #include <stdexcept>
 #include <condition_variable>
 #include <mutex>
 
@@ -16,10 +16,12 @@ namespace dicts{
     typedef std :: string prefix_t, dict_name_t;
 
     struct item{
+        // start point at the begin of the string.
+        // length is the length of the string.
         const char *start;
         size_t length;
         item(const char *start, size_t length);
-        item(std :: csub_match &match);
+        item(const std :: csub_match &match);
         ~item();
         bool check(); // check only when need
     };
@@ -33,7 +35,7 @@ namespace dicts{
         std :: regex regex;
         prefix_t prefix;
         regex_prefix_pair(struct item &regex_str, struct item &prefix);
-        regex_prefix_pair(std :: csub_match &regex_str, std :: csub_match &prefix);
+        regex_prefix_pair(const std :: csub_match &regex_str, const std :: csub_match &prefix);
         ~regex_prefix_pair();
     };
 
@@ -51,7 +53,7 @@ namespace dicts{
             // Promise that prefix_dict :: full check the state of dict.
             // In this case, the dict is unmodifiable, so prefix_dict :: full
             // is thread-safe.
-            const std :: string full(struct item &item, bool &success);
+            void get_prefix(struct item &item, bool &success, std :: string **rvl);
             prefix_dict(dict_name_t &name);
             prefix_dict(struct item &name);
             prefix_dict();
@@ -80,9 +82,11 @@ namespace dicts{
             std :: vector<struct dict_with_state> *shelf;
             std :: map<dict_name_t, size_t> *name_index_map;
             const bool modifiable;
-        public:
             prefix_dicts(bool modifiable);
             ~prefix_dicts();
+        public:
+            // When invoke prefix_dicts::defdir, the instance take over
+            // duty to manage the dict.
             void defdir(prefix_dict *dict);
     };
 
@@ -99,7 +103,7 @@ namespace dicts{
             ~ref_prefix_dicts();
             bool undefdir(dict_name_t &name);
             bool undefdir(struct item &name);
-            const std :: string full(struct item &item, bool &success);
+            const std :: string *full(struct item &item, bool &success);
             bool exist(dict_name_t &name);
     };
 

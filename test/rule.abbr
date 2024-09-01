@@ -1,0 +1,8 @@
+defdir
+	.*:$(BIN)/
+	NOEXTEND .*\.cpp OBJS
+endef
+
+test_dicts : test_dicts.o dicts.o
+MAKE OBJS += test_dicts
+
