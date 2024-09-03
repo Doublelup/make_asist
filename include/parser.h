@@ -8,9 +8,11 @@
 #include <atomic>
 #include <assert.h>
 #include <cstring>
-// #include <stdexcept>
+#include <stdexcept>
 #include <condition_variable>
 #include <mutex>
+#include <fstream>
+// #include "thread_pool.h"
 
 namespace dicts{
     typedef std :: string prefix_t, dict_name_t;
@@ -163,32 +165,60 @@ namespace dicts{
     };
 };
 
-class Context{
-    private:
-        std :: atomic_bool finish;
-        std :: vector<class Context *> subcontexts;
-        dicts :: loc_prefix_dicts lpd;
-        dicts :: ref_prefix_dicts rpd;
-        void is_finish();
-    public:
-        void defdir(std :: string &name, const char *start, const char *end);
-        void undefdir(std :: string &name);
-        void noextend(std :: string &name, const char *start, const char *end);
-        void unnoextend(std :: string &name);
-        void raw(const char *start, const char *end);
+namespace reader{
+    typedef std :: string name_t;
+    class Context{
+        private:
+            std :: atomic_bool finish;
+            std :: vector<class Context *> subcontexts;
+            dicts :: loc_prefix_dicts lpd;
+            dicts :: ref_prefix_dicts rpd;
+            dicts :: loc_noextend_dicts lnd;
+            dicts :: ref_noextend_dicts rnd;
+            void is_finish();
+        public:
+            // create an empty context with empty ref_noextend/prefix_dicts
+            Context();
+            // create context inherit parent's ref_noectend/prefix_dicts
+            Context(Context &parent);
+            ~Context();
+            // start point at the begin, end point at the char after the real end.
+            void defdir(std :: string &name, const char *start, const char *end);
+            void undefdir(std :: string &name);
+            void noextend(std :: string &name, const char *start, const char *end);
+            void unnoextend(std :: string &name);
+            void raw(const char *start, const char *end);
+            void make(const char *start, const char *end);
+            void add_sub_context(Context *context);
+    };
 
-};
-
-class Reader{
-    private:
-        std :: string file_name;
-        class Context *root;
-        class Context *crtcontext;
-        std :: stack<class Context *> s;
-    public:
-        Reader(std :: string &file_name);
-        ~Reader();
-        void start();
-        bool is_finish();
-};
-
+    typedef enum order_type{
+        DEFDIR, NOEXTEND, RAW, MAKE, UNDEFDIR, UNNOEXTEND, CONTEXT, OERROR,
+    }order_t;
+    typedef enum SIG{
+        NEWCONTEXT, READ, END, NAME_CHAR, ENDCONTEXT, ERROR, COMMENT,
+    }signal_t;
+    class Reader{
+        public:
+        private:
+            std :: string file_path;
+            std :: string content;
+            const char *p; // *p == '\0' indicates eof 
+            Context *current;
+            std :: stack<Context *> s;
+            enum order_type read_order(name_t &name);
+            size_t content_size();
+            struct block defdir();
+            struct block noextend();
+            name_t undefdir();
+            name_t unnoextend();
+            struct block make();
+            struct block raw();
+            signal_t block_handler();
+        public:
+            Reader(std :: string &file_path);
+            ~Reader();
+            void start();
+            bool is_finish();
+    };
+}

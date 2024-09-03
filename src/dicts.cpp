@@ -82,7 +82,7 @@ prefix_dict :: ~prefix_dict()
 {
     assert(is_ready());
     std :: unique_lock<std :: mutex> lock(mut);
-    for (auto pair : pairs)
+    for (auto &pair : pairs)
     {
         delete pair;
     }
@@ -223,7 +223,7 @@ loc_prefix_dicts :: loc_prefix_dicts()
 
 loc_prefix_dicts :: ~loc_prefix_dicts()
 {
-    for (auto dict : *shelf)
+    for (auto &dict : *shelf)
     {
         delete dict.dict;
     }
@@ -261,7 +261,7 @@ ref_prefix_dicts :: ref_prefix_dicts(bool modifiable, ref_prefix_dicts &source)
     // Refresh map.
     assert(source.name_index_map);
     name_index_map = new std :: map<dict_name_t, size_t>{*source.name_index_map};
-    for (auto pair : *name_index_map)
+    for (auto &pair : *name_index_map)
     {
         pair.second = asist[pair.second];
         assert(pair.first == (*shelf)[pair.second].dict->get_name());
@@ -377,6 +377,7 @@ noextend_dict :: ~noextend_dict()
 {
     assert(is_ready());
     std :: unique_lock<std :: mutex> lock{mut};
+    // std :: vector is in charge of regex.
 }
 
 enum dict_type
@@ -406,6 +407,7 @@ noextend_dict :: finish()
     assert(!is_ready());
     std :: unique_lock<std :: mutex> lock{mut};
     ready = true;
+    spark.notify_all();
     return;
 }
 
@@ -423,7 +425,8 @@ noextend_dict :: match(struct item &item)
     wait_for_ready();
     bool ret = false;
     std :: string sitem = {item.start, item.length};
-    for (int i= list.size()-1; i >= 0; --i)
+    int dict_size = list.size();
+    for (int i = 0; i < dict_size; ++i)
     {
         if (std :: regex_match(sitem, list[i]))
         {
@@ -505,7 +508,7 @@ loc_noextend_dicts :: loc_noextend_dicts()
 
 loc_noextend_dicts :: ~loc_noextend_dicts()
 {
-    for (auto dict : *shelf)
+    for (auto &dict : *shelf)
     {
         delete dict.dict;
     }
@@ -542,7 +545,7 @@ ref_noextend_dicts :: ref_noextend_dicts(bool modifiable, ref_noextend_dicts &so
 
     assert(source.name_index_map);
     name_index_map = new std :: map<dict_name_t, size_t>{*source.name_index_map};
-    for (auto pair : *name_index_map)
+    for (auto &pair : *name_index_map)
     {
         pair.second = asist[pair.second];
         assert(pair.first == (*shelf)[pair.second].dict->get_name());
@@ -604,7 +607,6 @@ ref_noextend_dicts :: match(struct item &item)
     }
     return ret;
 }
-
 
 
 

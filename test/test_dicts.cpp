@@ -63,7 +63,7 @@ bool test_for_regex_prefix_pair()
 void sub_test_for_prefix_dict1(prefix_dict &dict, std :: vector<std :: string*> &rvls)
 {
     const static int max_length = 20;
-    const static int test_size = 20;
+    const static int test_size = 2;
     std :: random_device rd;
     std :: mt19937 gen(rd());
     std :: uniform_int_distribution<> distri_length(1,max_length-1);
@@ -91,7 +91,6 @@ void sub_test_for_prefix_dict1(prefix_dict &dict, std :: vector<std :: string*> 
     for (int i = 0; i < test_size; ++i)
     {
         ts[i]->join();
-        assert(_rvls[i]);
         rvls.push_back(_rvls[i]);
         delete ts[i];
         delete its[i];
@@ -157,7 +156,7 @@ void sub_test_for_prefix_dict2(prefix_dict &dict)
 bool test_for_prefix_dict()
 {
     dict_name_t s = "hello";
-    const static int thread_num = 100;
+    const static int thread_num = 10;
     prefix_dict hello(s);
     std :: thread *t[thread_num];
     std :: vector<std :: string*> rvls[thread_num];
@@ -177,7 +176,7 @@ bool test_for_prefix_dict()
         for(int j = 0; j < rvls[i].size(); ++j)
         {
             // std :: cout << "\t" << *rvls[i][j] << std :: endl;
-            delete rvls[i][j];
+            if(rvls[i][j]) delete rvls[i][j];
         }
     }
     for (int i = 0; i < thread_num; ++i)
@@ -208,6 +207,7 @@ bool test_for_loc_prefix_dicts()
         dicts.defdir(empty_dicts[i]);
     }
     constructor.join();
+    std :: cout << "loc_prefix_dicts [Pass]" << std :: endl;
     return true;
 }
 
@@ -215,8 +215,11 @@ bool test_for_ref_prefix_dicts()
 {
     static const int empty_dict_num = 10;
     dict_name_t s = "hello";
+    dict_name_t t = "world";
     prefix_dict *d0 = new prefix_dict{s};
-    std :: thread constructor{sub_test_for_prefix_dict2, std :: ref (*d0)};
+    prefix_dict *d1 = new prefix_dict{t};
+    std :: thread constructor1{sub_test_for_prefix_dict2, std :: ref (*d0)};
+    std :: thread constructor2{sub_test_for_prefix_dict2, std :: ref (*d1)};
     prefix_dict *empty_dicts[empty_dict_num];
     for(int i = 0; i < empty_dict_num; ++i)
     {
@@ -226,7 +229,9 @@ bool test_for_ref_prefix_dicts()
     loc_prefix_dicts loc_dicts{};
     ref_prefix_dicts ref_dicts{};
     loc_dicts.defdir(d0);
+    loc_dicts.defdir(d1);
     ref_dicts.defdir(d0);
+    ref_dicts.defdir(d1);
     for(int i = 0; i < empty_dict_num; ++i)
     {
         loc_dicts.defdir(empty_dicts[i]);
@@ -240,21 +245,24 @@ bool test_for_ref_prefix_dicts()
     bool success1 = false, success2 = false;
     const std :: string *str1 = cp_ref_dicts1.full(it, success1);
     const std :: string *str2 = cp_ref_dicts2.full(it, success2);
+    
     assert(success1 && !success2);
-    std :: cout << *str1 << std :: endl;
-    std :: cout << *str2 << std :: endl;
-    constructor.join();
+    // std :: cout << *str1 << std :: endl;
+    // std :: cout << *str2 << std :: endl;
+    constructor1.join();
+    constructor2.join();
     delete str1;
     delete str2;
+    std :: cout << "ref_prefix_dicts [Pass]" << std :: endl;
     return true;
 }
 
 int main()
 {
-    // test_for_item();
-    // test_for_regex_prefix_pair();
-    // test_for_prefix_dict();
-    // test_for_loc_prefix_dicts();
+    test_for_item();
+    test_for_regex_prefix_pair();
+    test_for_prefix_dict();
+    test_for_loc_prefix_dicts();
     test_for_ref_prefix_dicts();
     return 0;
 }

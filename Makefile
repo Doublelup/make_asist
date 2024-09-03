@@ -9,13 +9,16 @@ EXTEND_FILE ?= $(W_DIR)/bin/dependence.mk
 RULE_MK ?= $(W_DIR)/default.mk
 INCLUDE_MK = $(EXTEND_FILE)
 
+export INCLUDE_MK
+
 default : $(EXTEND_FILE) force;
 
 $(EXTEND_FILE) : $(ABBR_FILE)
 	$(ABBR) $(ABBR_FILE) $(EXTEND_FILE)
 
 force: ;
-	$(MAKE) -f $(RULE_MK) INCLUDE_MK='$(INCLUDE_MK)'
+#	$(MAKE) -f $(RULE_MK) INCLUDE_MK='$(INCLUDE_MK)'
+	$(MAKE) -f $(RULE_MK) -e
 
 clean :;
 	$(MAKE) -f $(RULE_MK) clean

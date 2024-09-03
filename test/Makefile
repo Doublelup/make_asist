@@ -16,8 +16,10 @@ default : $(EXTEND_FILE) force;
 $(EXTEND_FILE) : $(ABBR_FILE)
 	$(ABBR) $(ABBR_FILE) $(EXTEND_FILE)
 
+export INCLUDE_MK
 force : ;
-	$(MAKE) -f $(RULE_MK) INCLUDE_MK='$(INCLUDE_MK)'
+#	$(MAKE) -f $(RULE_MK) INCLUDE_MK='$(INCLUDE_MK)'
+	$(MAKE) -f $(RULE_MK) -e
 
 clean :;
 	$(MAKE) -f $(RULE_MK) clean

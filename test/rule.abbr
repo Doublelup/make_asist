@@ -6,3 +6,6 @@ endef
 test_dicts : test_dicts.o dicts.o
 MAKE OBJS += test_dicts
 
+test_reader : test_reader.o temp_context.o reader.o dicts.o
+MAKE OBJS += test_reader
+

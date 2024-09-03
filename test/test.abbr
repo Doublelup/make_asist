@@ -1,0 +1,17 @@
+defdir ( hello ) # This is an comment
+{
+	.*:inlcude
+	c.h:yes
+}
+
+context {
+	defdir (yes){
+
+	}
+	undefdir (hello)
+	raw  :whatsup
+	make{
+		anything,
+		here.
+	}
+}
