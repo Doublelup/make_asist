@@ -6,12 +6,21 @@ defdir ( hello ) # This is an comment
 
 context {
 	defdir (yes){
-
+		$(hello) : include
+		${which} : bin
 	}
 	undefdir (hello)
 	raw  :whatsup
+	where
 	make{
 		anything,
 		here.
+	}
+	context {
+		dosomething
+		here
+		defdir (no){
+			hhh : yyy
+		}
 	}
 }

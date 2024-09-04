@@ -208,17 +208,12 @@ namespace reader{
             std :: stack<Context *> s;
             enum order_type read_order(name_t &name);
             size_t content_size();
-            struct block defdir();
-            struct block noextend();
-            name_t undefdir();
-            name_t unnoextend();
-            struct block make();
-            struct block raw();
             signal_t block_handler();
         public:
             Reader(std :: string &file_path);
             ~Reader();
             void start();
             bool is_finish();
+            const char *get_p();
     };
 }

@@ -170,7 +170,7 @@ namespace trans_matrix{
     char line_char_num(char c)
     {
         char ret;
-        // '\n' 0, '#' 1, ' ' '\t' 2, '{' 3, ':' 4, '\' 5, '\0' 6, other 7
+        // '\n' 0, '#' 1, ' ' '\t' 2, '{' 3, ':' 4, '\' 5, '\0' 6, name_char 7, other 8
         switch (c){
             case '\n': ret = 0; break;
             case '#': ret = 1; break;
@@ -180,15 +180,18 @@ namespace trans_matrix{
             case ':': ret = 4; break;
             case '\\': ret = 5; break;
             case '\0': ret = 6; break;
-            default: ret = 7; break;
+            default: 
+                if (is_name_char(c)) ret = 7;
+                else ret = 8;
+                break;
         }
         return ret;
     }
-    const char line_trans[4][8] = {
-        {0, 1, 0, 5, 2, 6, 6, 6},
-        {0, 1, 1, 1, 1, 1, 6, 1},
-        {4, 4, 2, 2, 2, 3, 6, 2},
-        {2, 2, 2, 2, 2, 2, 6, 2},
+    const char line_trans[4][9] = {
+        {0, 1, 0, 5, 2, 6, 6, 2, 6},
+        {0, 1, 1, 1, 1, 1, 6, 1, 1},
+        {4, 4, 2, 2, 2, 3, 6, 2, 2},
+        {2, 2, 2, 2, 2, 2, 6, 2, 2},
         // state 4, line type end;
         // state 5, block type begin;
         // state 6, error;
@@ -240,7 +243,10 @@ Reader :: block_handler()
                     pre = status;
                     char_type = trans_matrix :: line_char_num(*p);
                     status = trans_matrix :: line_trans[status][char_type];
-                    if (pre == 0 && status == 2) start = p + 1;
+                    if (pre == 0 && status == 2){
+                        if (char_type == 4) start = p + 1;
+                        else start = p;
+                    }
                     if (pre == 2 && status == 4){
                         end = p;
                         --p;
@@ -407,6 +413,9 @@ Reader :: start()
             case END:
                 break;
             case ERROR:
+                // for test
+                std :: cout << "error" << std :: endl;
+                // end
                 break;
             case COMMENT:
                 while(*p && *p != '\n')++p;
@@ -421,6 +430,12 @@ Reader :: start()
     // TODO, wait for finish
 
     return;
+}
+
+const char *
+Reader :: get_p()
+{
+    return p;
 }
 
 Context :: Context(Context &parent)
