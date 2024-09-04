@@ -206,8 +206,10 @@ namespace reader{
             const char *p; // *p == '\0' indicates eof 
             Context *current;
             std :: stack<Context *> s;
+            // read_order should stop at the char need to deal.
             enum order_type read_order(name_t &name);
             size_t content_size();
+            // block_handler stop at the char need to deal.
             signal_t block_handler();
         public:
             Reader(std :: string &file_path);

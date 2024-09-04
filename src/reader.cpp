@@ -249,27 +249,26 @@ Reader :: block_handler()
                     }
                     if (pre == 2 && status == 4){
                         end = p;
-                        --p;
+                        if (char_type == 1) --p;
                     }
                     ++p;
                 }
                 if (status == 6){
                     ret = signal_t :: ERROR;
+                    --p;
+                    break;
+                }
+                else if(status == 4){
+                    assert(start && end);
+                    if (type == RAW) current->raw(start, end);
+                    else if (type == MAKE) current->make(start, end);
+                    else assert(0);
+                    ret = READ;
                     break;
                 }
                 else{
-                    if (start && end){
-                        assert(status == 4);
-                        if (type == RAW) current->raw(start, end);
-                        else if (type == MAKE) current->make(start, end);
-                        else assert(0);
-                        ret = READ;
-                        break;
-                    }
-                    else{
-                        assert(status == 5);
-                        --p;
-                    }
+                    assert(status == 5);
+                    --p;
                 }
             }
         case DEFDIR:
@@ -304,11 +303,11 @@ Reader :: block_handler()
                     else if(type == RAW) current->raw(start, end);
                     else if(type == MAKE) current->make(start, end);
                     else assert(0);
-                    --p;
                     ret = READ;
                 }
                 else{
                     assert(status == 4);
+                    --p;
                     ret = signal_t :: ERROR;
                 }
             }
@@ -331,7 +330,10 @@ Reader :: block_handler()
             }
             if (status == 2)
                 ret = NEWCONTEXT;
-            else ret = signal_t :: ERROR;
+            else{
+                ret = signal_t :: ERROR;
+                --p;
+            }
             break;
         case order_t :: OERROR:
             ret = signal_t :: ERROR;
@@ -349,7 +351,6 @@ Reader :: start()
     // 1 end, 2 error
     char status = 0;
     signal_t input = NEWCONTEXT;
-    --p;
     while (!status){// status != 1 && status != 2
         // handle signal
         if (input == END) status = 1;
@@ -374,8 +375,6 @@ Reader :: start()
                 break;
             case READ:
                 {
-                    // execute signal
-                    ++p;
                     // generate new signal
                     switch (*p){
                         case '\n':
@@ -388,15 +387,23 @@ Reader :: start()
                             break;
                         case '\0':
                             input = END;
+                            --p;
                             break;
                         case '#':
                             input = COMMENT;
                             break;
                         default:
-                            if(is_name_char(*p)) input = NAME_CHAR;
-                            else input = signal_t :: ERROR;
+                            if(is_name_char(*p)){
+                                input = NAME_CHAR;
+                                --p;
+                            }
+                            else{
+                                input = signal_t :: ERROR;
+                                --p;
+                            }
                             break;
                     }
+                    ++p;
                 }
                 break;
             case NAME_CHAR:
@@ -420,7 +427,10 @@ Reader :: start()
             case COMMENT:
                 while(*p && *p != '\n')++p;
                 if (!*p) input = END;
-                else input = READ;
+                else{
+                    input = READ;
+                    ++p;
+                }
                 break;
             default:
                 assert (0);
@@ -428,6 +438,8 @@ Reader :: start()
         }
     }
     // TODO, wait for finish
+
+    if (!s.empty()) std :: cout << "context is not empty" << std :: endl;
 
     return;
 }

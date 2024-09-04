@@ -4,17 +4,21 @@ defdir ( hello ) # This is an comment
 	c.h:yes
 }
 
-context {
-	defdir (yes){
+context {defdir (yes){
 		$(hello) : include
 		${which} : bin
+		\{
 	}
+	defdir(		 ) # This is a comment
+	{
+		nonono}
 	undefdir (hello)
 	raw  :whatsup
 	where
 	make{
 		anything,
 		here.
+		\}
 	}
 	context {
 		dosomething
@@ -23,4 +27,9 @@ context {
 			hhh : yyy
 		}
 	}
+}
+
+context{defdir(no){.*:he}defdir(yes){nono}undefdir(yes)}
+\}
+\}
 }
