@@ -1,3 +1,9 @@
+#ifndef MAKE_HELPER_H
+#define MAKE_HELPER_H
+
+
+#define TEST
+
 #include <iostream>
 #include <vector>
 #include <stack>
@@ -12,7 +18,7 @@
 #include <condition_variable>
 #include <mutex>
 #include <fstream>
-// #include "thread_pool.h"
+#include "threadPool.h"
 
 namespace dicts{
     typedef std :: string prefix_t, dict_name_t;
@@ -24,6 +30,8 @@ namespace dicts{
         size_t length;
         item(const char *start, size_t length);
         item(const std :: csub_match &match);
+        item(const std :: string& str);
+        item();
         ~item();
         bool check(); // check only when need
     };
@@ -41,7 +49,7 @@ namespace dicts{
         ~regex_prefix_pair();
     };
 
-    typedef std :: vector<struct regex_prefix_pair*> prefix_pairs_t;
+    using prefix_pairs_t = std::vector<struct regex_prefix_pair*>;
     class prefix_dict{
         private:
             std :: atomic_bool ready;
@@ -69,6 +77,11 @@ namespace dicts{
             void add_item(struct item &pattern_str, struct item &prefix);
             void add_pairs(prefix_pairs_t *newpairs); // Don't forget to free newpairs!
             void add_pairs(prefix_pairs_t &newpairs);
+#ifdef TEST
+
+            prefix_pairs_t *access_pairs(){return &pairs;};
+
+#endif
     };
 
     // Both ref_prefix_dicts and loc_prefix_dicts can NOT be shared among threads!
@@ -166,30 +179,49 @@ namespace dicts{
 };
 
 namespace reader{
-    typedef std :: string name_t;
+    using name_t = std :: string;
+    extern threadPool pool;
     class Context{
         private:
-            std :: atomic_bool finish;
+            enum class Priority{
+                FINISH, USE_DICT, MAKE_DICT,
+            };
             std :: vector<class Context *> subcontexts;
             dicts :: loc_prefix_dicts lpd;
             dicts :: ref_prefix_dicts rpd;
             dicts :: loc_noextend_dicts lnd;
             dicts :: ref_noextend_dicts rnd;
-            void is_finish();
+            std :: vector<std :: string*> input;
+            std :: string* output;
+            std :: mutex jobs_guard;
+            std :: condition_variable cv;
+            int jobs;
+            Context *parent;
+            void add_sub_context(Context *context);
+            std::string *add_input();
+            void _end(Context *context);
         public:
             // create an empty context with empty ref_noextend/prefix_dicts
-            Context();
+            Context(std :: string *output);
             // create context inherit parent's ref_noectend/prefix_dicts
             Context(Context &parent);
             ~Context();
             // start point at the begin, end point at the char after the real end.
-            void defdir(std :: string &name, const char *start, const char *end);
+            void defdir(int order, std :: string &name, const char *start, const char *end);
             void undefdir(std :: string &name);
-            void noextend(std :: string &name, const char *start, const char *end);
+            void noextend(int order, std :: string &name, const char *start, const char *end);
             void unnoextend(std :: string &name);
-            void raw(const char *start, const char *end);
-            void make(const char *start, const char *end);
-            void add_sub_context(Context *context);
+            void raw(int order, const char *start, const char *end);
+            void make(int order, const char *start, const char *end);
+            void end(int order);
+            void jobs_inc();
+            void jobs_dec();
+#ifdef TEST
+
+            void add_prefix_dict(dicts::prefix_dict *pd){lpd.defdir(pd); rpd.defdir(pd);};
+            void add_noextend_dict(dicts::noextend_dict *nd){lnd.noextend(nd);rnd.noextend(nd);};
+
+#endif
     };
 
     typedef enum order_type{
@@ -199,13 +231,15 @@ namespace reader{
         NEWCONTEXT, READ, END, NAME_CHAR, ENDCONTEXT, ERROR, COMMENT,
     }signal_t;
     class Reader{
-        public:
         private:
             std :: string file_path;
             std :: string content;
+            std :: string result;
+            int order;
             const char *p; // *p == '\0' indicates eof 
             Context *current;
             std :: stack<Context *> s;
+            static bool error;
             // read_order should stop at the char need to deal.
             enum order_type read_order(name_t &name);
             size_t content_size();
@@ -217,5 +251,30 @@ namespace reader{
             void start();
             bool is_finish();
             const char *get_p();
+            // Here, we only consider deadlock in thread pool.
+            // When error happen, tasks just pass by, whether results are
+            // right doesn't matter.
+            static void send_error();
+            static bool check_error();
     };
 }
+
+
+#ifdef TEST
+
+struct TestSuit{
+    bool (*test_regex_reader)(const char *&p, const char *end, int &len, char *buffer);
+    bool (*test_name_reader)(const char *&p, const char *end, int &len, char *buffer);
+    int (*test_read_mark)(const char *&p, const char *end);
+    bool (*test_read_tabs)(const char *&p, const char *end, int indent);
+    void (*defdir)(dicts::prefix_dict &dict, const char *start, const char *end, reader::Context *context);
+    void (*noextend)(dicts::noextend_dict &dict, const char *start, const char *end, reader::Context *context);
+    void (*raw)(std::string *output, const char *start, const char *end, reader::Context *context);
+    void (*make)(std::string *output, dicts::ref_prefix_dicts *rpd, dicts::ref_noextend_dicts *rnd, const char *start, const char *end, reader::Context *context);
+};
+
+extern TestSuit test;
+
+#endif
+
+#endif

@@ -7,7 +7,9 @@ Reader :: Reader(std :: string &file_path)
     content{},
     p{nullptr},
     current{nullptr},
-    s{}
+    s{},
+    result{},
+    order{0}
 {
     std :: ifstream file(file_path);
     if (!file.is_open())
@@ -260,8 +262,8 @@ Reader :: block_handler()
                 }
                 else if(status == 4){
                     assert(start && end);
-                    if (type == RAW) current->raw(start, end);
-                    else if (type == MAKE) current->make(start, end);
+                    if (type == RAW) current->raw(order++, start, end);
+                    else if (type == MAKE) current->make(order++, start, end);
                     else assert(0);
                     ret = READ;
                     break;
@@ -298,10 +300,10 @@ Reader :: block_handler()
                 }
                 if (start && end){
                     assert(status == 5);
-                    if (type == DEFDIR) current->defdir(name, start, end);
-                    else if(type == NOEXTEND)current->noextend(name, start, end);
-                    else if(type == RAW) current->raw(start, end);
-                    else if(type == MAKE) current->make(start, end);
+                    if (type == DEFDIR) current->defdir(order++, name, start, end);
+                    else if(type == NOEXTEND)current->noextend(order++, name, start, end);
+                    else if(type == RAW) current->raw(order++, start, end);
+                    else if(type == MAKE) current->make(order++, start, end);
                     else assert(0);
                     ret = READ;
                 }
@@ -351,7 +353,7 @@ Reader :: start()
     // 1 end, 2 error
     char status = 0;
     signal_t input = NEWCONTEXT;
-    while (!status){// status != 1 && status != 2
+    while (!status && !error){// status != 1 && status != 2
         // handle signal
         if (input == END) status = 1;
         else if(input == ERROR) status = 2;
@@ -363,11 +365,10 @@ Reader :: start()
                     if (current){
                         s.push(current);
                         Context * newcontext = new Context{*current}; 
-                        current->add_sub_context(newcontext);
                         current = newcontext;
                     }
                     else{
-                        current = new Context{};
+                        current = new Context{&result};
                     }
                     // generate new signal
                     input = READ;
@@ -450,33 +451,18 @@ Reader :: get_p()
     return p;
 }
 
-Context :: Context(Context &parent)
-:   finish{false},
-    subcontexts{},
-    lpd{},
-    rpd{true, parent.rpd},
-    lnd{},
-    rnd{true, parent.rnd}
-{
-}
-
-Context :: Context()
-:   finish{false},
-    subcontexts{},
-    lpd{},
-    rpd{},
-    lnd{},
-    rnd{}
-{
-}
-
 void
-Context :: add_sub_context(Context *context)
+Reader :: send_error()
 {
-    assert(context);
-    subcontexts.push_back(context);
-    return;
+    error = true;
 }
+
+bool
+Reader :: check_error()
+{
+    return error;
+}
+
 
 
 

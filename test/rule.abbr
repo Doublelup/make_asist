@@ -1,12 +1,19 @@
 defdir
 	.*:$(BIN)/
-	NOEXTEND .*\.cpp OBJS test2
+	NOEXTEND .*\.cpp OBJS test2 
 endef
 
-test_dicts : test_dicts.o dicts.o
-MAKE OBJS += test_dicts
+# test_dicts : test_dicts.o dicts.o
+# MAKE OBJS += test_dicts
 
-test_reader : test_reader.o temp_context.o reader.o dicts.o test.o
+# test_reader : test_reader.o temp_context.o reader.o dicts.o test.o
 printabbr : test.o printabbr.o
-MAKE OBJS += test_reader printabbr
+test_context : test_context.o context.o dicts.o reader.o test.o
+MAKE OBJS += printabbr test_context
+
+# threadPool : test_threadPool.o
+# MAKE OBJS += threadPool
+
+# example : example.o
+# MAKE OBJS += example
 

@@ -14,6 +14,17 @@ item :: item(const std :: csub_match &match)
 {
 }
 
+item :: item(const std :: string& str)
+:   start{str.c_str()},
+    length{str.length()}
+{
+}
+
+item :: item()
+:   start{nullptr},
+    length{0}
+{}
+
 item :: ~item()
 {}
 

@@ -10,6 +10,7 @@ void direct_print(const char *start, const char *end, bool verbose)
             switch (*p){
                 case '\n': printf("[\\n]"); break;
                 case '\t': printf("[\\t]"); break;
+                case ' ' : printf("[ ]"); break;
                 default: printf("%c", *p);break;
             }
         }
@@ -17,11 +18,13 @@ void direct_print(const char *start, const char *end, bool verbose)
             switch (*p){
                 case '\n': printf("[\\n]\n"); break;
                 case '\t': printf("[\\t]"); break;
+                case ' ':printf("[ ]"); break;
                 default: printf("%c", *p);break;
             }
         }
         ++p;
     }
+    printf("[end]");
     printf("\n");
     return;
 }

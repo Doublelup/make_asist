@@ -5,12 +5,6 @@ using namespace reader;
 
 const char *context_begin;
 
-void
-Context :: is_finish()
-{
-    return;
-}
-
 #define PRINT \
 {\
     printf("\tstart: %ld, end %ld\n", start-context_begin, end-context_begin);\
@@ -21,8 +15,9 @@ Context :: is_finish()
 }
 
 void
-Context :: defdir(std :: string &name, const char *start, const char *end)
+Context :: defdir(int order, std :: string &name, const char *start, const char *end)
 {
+    (void)order;
     std :: cout << "defdir" << std :: endl;
     if (!name.empty())
         std :: cout << "name: " << name << std :: endl;
@@ -42,8 +37,9 @@ Context :: undefdir(std :: string &name)
 }
 
 void
-Context :: noextend(std :: string &name, const char *start, const char *end)
+Context :: noextend(int order, std :: string &name, const char *start, const char *end)
 {
+    (void)order;
     std :: cout << "noextend" << std :: endl;
     if (!name.empty())
         std :: cout << "name: " << name << std :: endl;
@@ -63,15 +59,17 @@ Context :: unnoextend(std :: string &name)
 }
 
 void
-Context :: raw(const char *start, const char *end)
+Context :: raw(int order, const char *start, const char *end)
 {
+    (void)order;
     std :: cout << "raw" << std :: endl;
     PRINT
 }
 
 void
-Context :: make(const char *start, const char *end)
+Context :: make(int order, const char *start, const char *end)
 {
+    (void)order;
     std :: cout << "make" << std :: endl;
     PRINT
 }

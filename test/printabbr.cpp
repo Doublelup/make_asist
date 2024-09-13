@@ -12,5 +12,5 @@ int main()
     std :: string content = {std :: istreambuf_iterator<char>(file),
                                 std :: istreambuf_iterator<char>()};
     file.close();
-    direct_print(content.c_str(), content.c_str() + content.size(), true);
+    direct_print(content.c_str(), content.c_str() + content.size(), false);
 }
