@@ -2,7 +2,7 @@
 .PHONY : default force test
 .DEFAULT_GOAL := default
 
-W_DIR = /home/lup/rubbish/make_helper
+W_DIR = /home/lup/rubbish/make_asist
 TEST_DIR = $(W_DIR)/test
 ABBR = $(W_DIR)/abbr.py
 ABBR_FILE ?= $(TEST_DIR)/rule.abbr

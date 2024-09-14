@@ -1,4 +1,4 @@
-WORK_DIR=$HOME/rubbish/make_helper
+WORK_DIR=$HOME/rubbish/make_asist
 BIN=$WORK_DIR/bin
 
 $BIN/test_context

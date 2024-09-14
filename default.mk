@@ -3,7 +3,7 @@
 .DELETE_ON_ERROR: # delete the target file if the recipe fails \
 			beginning to change the file.
 
-WORK_HOME = /home/lup/rubbish/make_helper
+WORK_HOME = /home/lup/rubbish/make_asist
 BIN = $(WORK_HOME)/bin
 INCLUDE = $(WORK_HOME)/include
 SRC = $(WORK_HOME)/src
