@@ -123,7 +123,7 @@ namespace dicts{
     };
 
     class noextend_dict{
-        typedef std :: vector<std :: regex> noextend_list_t;
+        using noextend_list_t = std :: vector<std :: regex>;
         private:
             std :: atomic_bool ready;
             noextend_list_t list;
@@ -198,8 +198,10 @@ namespace reader{
             int jobs;
             Context *parent;
             void add_sub_context(Context *context);
+#ifndef TEST
             std::string *add_input();
-            void _end(Context *context);
+            static void _end(Context *context);
+#endif
         public:
             // create an empty context with empty ref_noextend/prefix_dicts
             Context(std :: string *output);
@@ -220,6 +222,10 @@ namespace reader{
 
             void add_prefix_dict(dicts::prefix_dict *pd){lpd.defdir(pd); rpd.defdir(pd);};
             void add_noextend_dict(dicts::noextend_dict *nd){lnd.noextend(nd);rnd.noextend(nd);};
+            dicts::ref_prefix_dicts &access_rpd(){return rpd;};
+            dicts::ref_noextend_dicts &access_rnd(){return rnd;};
+            std::string *add_input();
+            static void _end(Context *context);
 
 #endif
     };

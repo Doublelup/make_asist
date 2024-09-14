@@ -419,20 +419,13 @@ name_reader(const char* &p, const char* end, int &len, char *buffer)
                         pre = state;
                         state = ESCAPE;
                         break;
-                    case _char_t::SPACE:
-                    case _char_t::TAB:
-                    case _char_t::NEWLINE:
-                    case _char_t::COMMENT:
-                        pre = state;
-                        state = END;
-                        --p;
-                        break;
                     case _char_t::NAMECHAR:
                         buffer[len++] = input;
                         break;
                     default:
                         pre = state;
-                        state = ERROR;
+                        state = END;
+                        --p;
                         break;
                 }
             }
@@ -444,7 +437,6 @@ name_reader(const char* &p, const char* end, int &len, char *buffer)
                 type = type_interpreter(input);
                 switch (pre){
                     case AHEADNAME:
-                    case NAME:
                     switch (type){
                         case _char_t::NEWLINE:
                             state = pre;
@@ -455,6 +447,23 @@ name_reader(const char* &p, const char* end, int &len, char *buffer)
                             break;
                         default:
                             state = NAME;
+                            buffer[len++] = '\\';
+                            buffer[len++] = input;
+                            break;
+                    }
+                    break;
+                    case NAME:
+                    switch (type){
+                        case _char_t::NEWLINE:
+                            state = END;
+                            p-=2;
+                            break;
+                        case _char_t::NAMECHAR:
+                            pre = state;
+                            state = ERROR;
+                            break;
+                        default:
+                            state = pre;
                             buffer[len++] = '\\';
                             buffer[len++] = input;
                             break;
@@ -1107,7 +1116,10 @@ _raw(std::string *output, const char *start, const char *end, Context *context)
                 break;
             case ERROR:
                 sig_err();
+                goto OUTGATE;
             case END:
+                *output += '\n';
+OUTGATE:
                 context->jobs_dec();
                 return;
                 break;
@@ -1165,6 +1177,7 @@ _make(std::string *output, dicts::ref_prefix_dicts *rpd, dicts::ref_noextend_dic
             line_buf[line_ind] = '\0';
         }
         line_buf[line_ind++] = input;
+        line_buf[line_ind] = 0;
     };
     while (1){
         if (p == end){
@@ -1261,7 +1274,10 @@ _make(std::string *output, dicts::ref_prefix_dicts *rpd, dicts::ref_noextend_dic
                         }
                     }
                 }
-                if (p == end) state = END;
+                if (p == end){
+                    writeinline('\n');
+                    state = END;
+                }
                 else{
                     input = *p;
                     type = type_interpreter(input);
@@ -1372,12 +1388,13 @@ _make(std::string *output, dicts::ref_prefix_dicts *rpd, dicts::ref_noextend_dic
             }
             case COMMENT:
             {
-                while (p != end){
+                while (state == COMMENT && p != end){
                     input = *p;
                     ++p;
                     type = type_interpreter(input);
                     switch (type){
                         case _char_t::NEWLINE:
+                            if (pre != BOL)writeinline('\n');
                             state = BOL;
                             break;
                         default:
@@ -1388,9 +1405,12 @@ _make(std::string *output, dicts::ref_prefix_dicts *rpd, dicts::ref_noextend_dic
             break;
             case ERROR:
                 sig_err();
+                goto OUTGATE;
             case END:
+                writeinline('\n');
                 assert(!line_buf[line_ind]);
                 *output += line_buf;
+OUTGATE:
                 context->jobs_dec();
                 return;
                 break;

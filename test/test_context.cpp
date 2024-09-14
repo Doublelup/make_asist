@@ -118,20 +118,43 @@ void test_noextend(reader::Context *context)
 
 void test_raw(reader::Context *context)
 {
-//    dicts::prefix_dict *pd = new dicts::prefix_dict{};
-//    dicts::noextend_dict *nd = new dicts::noextend_dict{};
-//    context->add_prefix_dict(pd);
-//    context->add_noextend_dict(nd);
+    printf("[test_raw]: begin\n");
     const char *samples[] = {
         "#sample\t\t\n\t\t\t\tmark\t\t#mark\t\t\n\t\t\t\there is me  \\\n nononono#nono\n\t\t\t\t\t\toh yes\n\t\t",
+        "\t\t#sample \n\t\t\t\t\t\there is me\n\n\t\t\t\t\t\t\t\tno yes #no yes\t\n\t\t\tyes"
     };
     for (int i = 0; i < sizeof(samples)/sizeof(const char*); ++i){
-        std :: string output;
+        std::string *output = context->add_input();
         context->jobs_inc();
-        test.raw(&output, samples[i], get_str_end(samples[i]), context);
-        direct_print(output.c_str(), get_str_end(output.c_str()), true);
+        test.raw(output, samples[i], get_str_end(samples[i]), context);
+        direct_print((*output).c_str(), get_str_end((*output).c_str()), true);
     }
     assert(!reader::Reader::check_error());
+    printf("[test_raw]: finish\n\n");
+}
+
+void test_make(reader::Context *context)
+{
+    printf("[test_make]: begin\n");
+    dicts::prefix_dict *pd = new dicts::prefix_dict{};
+    dicts::noextend_dict *nd = new dicts::noextend_dict{};
+    context->add_prefix_dict(pd);
+    context->add_noextend_dict(nd);
+    const char *defdir_lines = "\t\t\n\".*\\.c\":\"$(SRC)\"\t\t\n\t\".*\\.h\":\"$(INCLUDE)\"\t\t\n";
+    const char *noextend_lines = "\t\t\n \"^hello.c$\" \"^[yhs]o.h$\"";
+    context->jobs_inc();
+    test.defdir(*pd, defdir_lines, get_str_end(defdir_lines), context);
+    context->jobs_inc();
+    test.noextend(*nd, noextend_lines, get_str_end(noextend_lines), context);
+    const char *sample = "\t\t#this is a sample\t\n\t\t\t\t mark #this is a mark\n\t\t\t\thello.c:hello.o hello.h #test\n\t\t\t\t\tho.c : ho.h\\\n\t\t\t\t\t\t\t\tho.o";
+    context->jobs_inc();
+    std::string *output = context->add_input();
+    dicts::ref_prefix_dicts rpd = dicts::ref_prefix_dicts{false, context->access_rpd()};
+    dicts::ref_noextend_dicts rnd = dicts::ref_noextend_dicts{false, context->access_rnd()};
+    test.make(output, &rpd, &rnd, sample, get_str_end(sample), context);
+    direct_print((*output).c_str(), get_str_end((*output).c_str()), true);
+    assert(!reader::Reader::check_error());
+    printf("[test_make]: finish\n\n");
 }
 
 int main(){
@@ -141,9 +164,15 @@ int main(){
     // test_read_mark();
     // test context.
     std::string output;
-    reader::Context context{&output};
-    test_defdir(&context);
-    test_noextend(&context);
-    test_raw(&context);
+    reader::Context *context = new reader::Context{&output};
+    //test_defdir(&context);
+    //test_noextend(&context);
+    test_raw(context);
+    test_make(context);
+    context->jobs_inc();
+    reader::Context::_end(context);
+    delete context;
+    printf("result: \n");
+    direct_print(output.c_str(), get_str_end(output.c_str()), true);
     return 0;
 }
