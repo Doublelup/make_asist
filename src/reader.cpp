@@ -1,4 +1,5 @@
 #include "../include/parser.h"
+#include "../include/exception.h"
 #include <cctype>
 
 using namespace reader;
@@ -13,7 +14,7 @@ Reader :: Reader(std :: string &file_path)
 {
     std :: ifstream file(file_path);
     if (!file.is_open())
-        throw std :: runtime_error("Reader 1 [file path error]");
+        throw exception_with_code(0, "Reader [file path error]");
     content = {std :: istreambuf_iterator<char>(file), 
                         std :: istreambuf_iterator<char>()};
     file.close();
@@ -22,8 +23,6 @@ Reader :: Reader(std :: string &file_path)
 
 Reader :: ~Reader()
 {
-    assert (current);
-    delete current;
 }
 
 bool
@@ -73,10 +72,17 @@ bool read_name(const char *&p, std :: string &name, bool &error)
                 else type = 4;
                 break;
         }
+        if (type == 4) {
+            status = 5;
+            break;
+        }
         status = t[status][type];
         if (pre == 1 && status == 2) start = p;
         if (pre == 2 && (status == 3 || status == 4)) end = p;
-        if (!*p)break;
+        if (!*p){
+            status = 5;
+            break;
+        }
         ++p;
     }
     if (status == 5) error = true;
@@ -262,6 +268,10 @@ Reader :: block_handler()
                 }
                 else if(status == 4){
                     assert(start && end);
+                    if (error) {
+                        ret = ERROR;
+                        break;
+                    }
                     if (type == RAW) current->raw(order++, start, end);
                     else if (type == MAKE) current->make(order++, start, end);
                     else assert(0);
@@ -300,6 +310,10 @@ Reader :: block_handler()
                 }
                 if (start && end){
                     assert(status == 5);
+                    if (error) {
+                        ret = ERROR;
+                        break;
+                    }
                     if (type == DEFDIR) current->defdir(order++, name, start, end);
                     else if(type == NOEXTEND)current->noextend(order++, name, start, end);
                     else if(type == RAW) current->raw(order++, start, end);
@@ -315,10 +329,18 @@ Reader :: block_handler()
             }
             break;
         case UNDEFDIR:
+            if (error) {
+                ret = ERROR;
+                break;
+            }
             current->undefdir(name);
             ret = READ;
             break;
         case UNNOEXTEND:
+            if (error) {
+                ret = ERROR;
+                break;
+            }
             ret = READ;
             current->unnoextend(name);
             break;
@@ -353,10 +375,11 @@ Reader :: start()
     // 1 end, 2 error
     char status = 0;
     signal_t input = NEWCONTEXT;
-    while (!status && !error){// status != 1 && status != 2
+    while (!status){// status != 1 && status != 2
         // handle signal
         if (input == END) status = 1;
         else if(input == ERROR) status = 2;
+        if (error) input = ERROR;
         // else status = 0;
         switch (input){
             case NEWCONTEXT:
@@ -409,21 +432,28 @@ Reader :: start()
                 break;
             case NAME_CHAR:
                 input = block_handler();
+                if (input == signal_t :: ERROR) send_error();
                 break;
             case ENDCONTEXT:
                 if (s.empty()) input = signal_t :: ERROR;
                 else{
+                    current->end(order++);
                     current = s.top();
                     s.pop();
                     input = READ;
                 }
                 break;
-            case END:
-                break;
             case ERROR:
-                // for test
-                std :: cout << "error" << std :: endl;
-                // end
+                while (!s.empty()) {
+                    current->end(order++);
+                    current = s.top();
+                    s.pop();
+                }
+            case END:
+                assert(s.empty());
+                current->end(order++);
+                delete current;
+                goto OUT;
                 break;
             case COMMENT:
                 while(*p && *p != '\n')++p;
@@ -439,6 +469,7 @@ Reader :: start()
         }
     }
     // TODO, wait for finish
+OUT:
 
     if (!s.empty()) std :: cout << "context is not empty" << std :: endl;
 

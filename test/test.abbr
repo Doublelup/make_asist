@@ -1,35 +1,24 @@
-defdir ( hello ) # This is an comment
-{
-	.*:inlcude
-	c.h:yes
+defdir (hello) {
+#	::h::
+	.*\.c:$(SRC)/ # source files.
+	.*\.h: $(INCLUDE)/ #header files.
+	.*: $(BIN)/ #binary utils.
 }
 
-context {defdir (yes){
-		$(hello) : include
-		${which} : bin
-		\{
-	}
-	defdir(		 ) # This is a comment
-	{
-		nonono}
-	undefdir (hello)
-	raw  :whatsup
-	where
-	make{
-		anything,
-		here.
-		\}
+context{
+	defdir(){
+		.*\.sh: $(SH)/
 	}
 	context {
-		dosomething
-		here
-		defdir (no){
-			hhh : yyy
-		}
+		# undefdir(hello)
+		noextend( nono ){OBJS}
+		unnoextend(nono)
+		make: OBJS += hello
 	}
-}
+	make{
+		hello.c:hello.sh hello.h
+	
+	}
+	#{
 
-context{defdir(no){.*:he}defdir(yes){nono}undefdir(yes)}
-\}
-\}
 }

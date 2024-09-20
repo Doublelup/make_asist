@@ -6,10 +6,11 @@ endef
 # test_dicts : test_dicts.o dicts.o
 # MAKE OBJS += test_dicts
 
-# test_reader : test_reader.o temp_context.o reader.o dicts.o test.o
+test_reader : test_reader.o reader.o dicts.o test.o context.o
 printabbr : test.o printabbr.o
-test_context : test_context.o context.o dicts.o reader.o test.o
-MAKE OBJS += printabbr test_context
+# test_context : test_context.o context.o dicts.o reader.o test.o
+make_asist : reader.o dicts.o context.o main.o
+MAKE OBJS += printabbr test_reader make_asist
 
 # threadPool : test_threadPool.o
 # MAKE OBJS += threadPool

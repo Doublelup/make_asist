@@ -20,7 +20,8 @@ class threadPool{
             Task(int priority, int order, std::function<void()> task): priority{priority}, order{order}, task{task} {};
             friend bool operator< (const Task& t1, const Task& t2) {return t1.priority == t2.priority ? t1.order > t2.order : t1.priority < t2.priority;}
         };
-        threadPool(size_t maxnum);
+        threadPool();
+        void init(size_t maxnum);
         template<typename F, typename... Args>
         auto enqueue(int p, int order, F&& f, Args&&... args)
             -> std::future<typename std::result_of<F(Args...)>::type>;
@@ -33,30 +34,41 @@ class threadPool{
         bool stop;
 };
 inline
-threadPool::threadPool(size_t maxnum)
+threadPool::threadPool()
 :   stop{false}
 {
-    for(size_t i = 0; i < maxnum; ++i)
-        workers.emplace_back(
-            [this]{
-                for(;;)
-                {
-                    std::function<void()> task;
+}
 
+inline
+void
+threadPool::init(size_t maxnum)
+{
+    {
+        std::unique_lock<std::mutex> lock(queue_mutex);
+        if (stop)
+            throw std::runtime_error("Init an stopped threadPool.");
+        for (size_t i = 0; i < maxnum; ++i)
+            workers.emplace_back(
+                [this]{
+                    for(;;)
                     {
-                        std::unique_lock<std::mutex> lock(this->queue_mutex);
-                        this->condition.wait(lock,
-                            [this]{return this->stop || !this->tasks.empty();});
-                        if (this->stop && this->tasks.empty())
-                            return;
-                        task = std::move(this->tasks.top().task);
-                        this->tasks.pop();
-                    }
+                        std::function<void()> task;
 
-                    task();
+                        {
+                            std::unique_lock<std::mutex> lock(this->queue_mutex);
+                            this->condition.wait(lock,
+                                [this]{return this->stop || !this->tasks.empty();});
+                            if (this->stop && this->tasks.empty())
+                                return;
+                            task = std::move(this->tasks.top().task);
+                            this->tasks.pop();
+                        }
+
+                        task();
+                    }
                 }
-            }
-        );
+            );
+    }
 }
 
 template<class F, class... Args>

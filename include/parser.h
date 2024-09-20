@@ -257,6 +257,7 @@ namespace reader{
             void start();
             bool is_finish();
             const char *get_p();
+            const std::string &output(){return result;};
             // Here, we only consider deadlock in thread pool.
             // When error happen, tasks just pass by, whether results are
             // right doesn't matter.

@@ -39,12 +39,12 @@ Context :: Context(std :: string* output)
 
 Context :: ~Context()
 {
+    for (Context *sub : subcontexts){
+        delete sub;
+    }
     {
         std::unique_lock<std::mutex> lock(jobs_guard);
         cv.wait(lock, [this]{return jobs == 0;});
-    }
-    for (Context *sub : subcontexts){
-        delete sub;
     }
     for (std::string* s : input) delete s;
     if (parent) parent->jobs_dec();
@@ -1411,6 +1411,8 @@ _make(std::string *output, dicts::ref_prefix_dicts *rpd, dicts::ref_noextend_dic
                 assert(!line_buf[line_ind]);
                 *output += line_buf;
 OUTGATE:
+                delete rpd;
+                delete rnd;
                 context->jobs_dec();
                 return;
                 break;
@@ -1428,8 +1430,8 @@ Context :: make(int order, const char *start, const char *end)
 {
     std :: string *output = add_input();
     jobs_inc();
-    dicts::ref_prefix_dicts *rpd_copy = new dicts::ref_prefix_dicts{rpd};
-    dicts::ref_noextend_dicts *rnd_copy = new dicts::ref_noextend_dicts{rnd};
+    dicts::ref_prefix_dicts *rpd_copy = new dicts::ref_prefix_dicts{false, rpd};
+    dicts::ref_noextend_dicts *rnd_copy = new dicts::ref_noextend_dicts{false, rnd};
     pool.enqueue(static_cast<int>(Priority::USE_DICT),
         order, _make, output, rpd_copy, rnd_copy, start, end, this);
     return;

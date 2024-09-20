@@ -78,7 +78,7 @@ test_read_mark()
 }
 
 namespace reader{
-    threadPool pool(5);
+    threadPool pool{};
     bool Reader::error = false;
 };
 
@@ -156,6 +156,20 @@ void test_make(reader::Context *context)
     assert(!reader::Reader::check_error());
     printf("[test_make]: finish\n\n");
 }
+
+// void test_context()
+// {
+//     printf("[test_context]: begin\n");
+// 
+//     std::string output;
+//     reader::Context context(&output);
+//     const char *defdir_sample = "\t\t#comment\n\t\t .*\\.c:$(SRC)\n\t\t\"hello[a-z]\\.cpp\" \\\n\t\t:\\\n whoami #comment\n\t\t";
+//     const char *noectend_sample = "\t\t\t\t\t\n ^hello.c$\n";
+//     const char *make_sample = 
+//     
+// 
+//     printf("[test_context]: finish\n\n");
+// }
 
 int main(){
     // test basic units.
