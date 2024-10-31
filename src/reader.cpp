@@ -255,11 +255,11 @@ Reader :: block_handler()
                         if (char_type == 4) start = p + 1;
                         else start = p;
                     }
+                    ++p;
                     if (pre == 2 && status == 4){
                         end = p;
                         if (char_type == 1) --p;
                     }
-                    ++p;
                 }
                 if (status == 6){
                     ret = signal_t :: ERROR;

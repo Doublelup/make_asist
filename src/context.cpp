@@ -1056,7 +1056,7 @@ read_mark(const char *&p, const char * const end){
 static bool
 read_tabs(const char* &p, const char * const end, int indent){
     for(int i = 0; i < indent; ++i){
-        if (*p != '\t') return false;
+        if (p == end || *p != '\t') return false;
         ++p;
     }
     return true;

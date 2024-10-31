@@ -121,7 +121,8 @@ void test_raw(reader::Context *context)
     printf("[test_raw]: begin\n");
     const char *samples[] = {
         "#sample\t\t\n\t\t\t\tmark\t\t#mark\t\t\n\t\t\t\there is me  \\\n nononono#nono\n\t\t\t\t\t\toh yes\n\t\t",
-        "\t\t#sample \n\t\t\t\t\t\there is me\n\n\t\t\t\t\t\t\t\tno yes #no yes\t\n\t\t\tyes"
+        "\t\t#sample \n\t\t\t\t\t\there is me\n\n\t\t\t\t\t\t\t\tno yes #no yes\t\n\t\t\tyes",
+        "test_packer : test_packer.cpp connect_info_table.h\n"
     };
     for (int i = 0; i < sizeof(samples)/sizeof(const char*); ++i){
         std::string *output = context->add_input();
@@ -149,9 +150,9 @@ void test_make(reader::Context *context)
     const char *sample = "\t\t#this is a sample\t\n\t\t\t\t mark #this is a mark\n\t\t\t\thello.c:hello.o hello.h #test\n\t\t\t\t\tho.c : ho.h\\\n\t\t\t\t\t\t\t\tho.o";
     context->jobs_inc();
     std::string *output = context->add_input();
-    dicts::ref_prefix_dicts rpd = dicts::ref_prefix_dicts{false, context->access_rpd()};
-    dicts::ref_noextend_dicts rnd = dicts::ref_noextend_dicts{false, context->access_rnd()};
-    test.make(output, &rpd, &rnd, sample, get_str_end(sample), context);
+    dicts::ref_prefix_dicts *rpd = new dicts::ref_prefix_dicts{false, context->access_rpd()};
+    dicts::ref_noextend_dicts *rnd = new dicts::ref_noextend_dicts{false, context->access_rnd()};
+    test.make(output, rpd, rnd, sample, get_str_end(sample), context);
     direct_print((*output).c_str(), get_str_end((*output).c_str()), true);
     assert(!reader::Reader::check_error());
     printf("[test_make]: finish\n\n");
