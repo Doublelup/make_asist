@@ -5,12 +5,23 @@ struct{
     int maxThreadNum; // "-j"
     std::string abbrFilePath; // "-i"
     std::string dependenceFilePath; // "-o"
+    char help; // "-h", "--help"
 }flags;
 
 namespace reader{
     threadPool pool{};
     bool Reader::error = false;
 };
+
+void help() {
+    static const char help_str[] = "Usage: ma [OPTIONS] FILE...\n"
+                                    "-j\tSet max thread num.\n"
+                                    "-i\tSet .abbr file path. (Default 'rule.abbr')\n"
+                                    "-o\tSet .mk file path. (Default 'dependence.mk')\n"
+                                    "-h(aka --help)\tShow help manual.\n";
+    std::cout << help_str << std::endl;
+    return;
+}
 
 int main(int argc, char *argv[]) {
     const char *default_abbr_path = "./rule.abbr";
@@ -21,8 +32,9 @@ int main(int argc, char *argv[]) {
     flags.abbrFilePath = default_abbr_path;
     flags.dependenceFilePath = default_dependence_path;
     flags.maxThreadNum = default_thread_num;
+    flags.help = 0;
 
-    for (int i = 1; i < argc - 1; ++i) {
+    for (int i = 1; i < argc; ++i) {
         if (!strcmp(argv[i], "-j")){
             ++i;
             flags.maxThreadNum = atoi(argv[i]);
@@ -41,10 +53,19 @@ int main(int argc, char *argv[]) {
             ++i;
             flags.dependenceFilePath = argv[i];
         }
+        else if (!strcmp(argv[i], "-h") || !strcmp(argv[i], "--help")) {
+            flags.help = 1;
+        }
         else{
             fprintf(stderr, "argv[%d] error!\n", i);
+            help();
             exit(-1);
         }
+    }
+
+    if (flags.help) {
+        help();
+        return 0;
     }
 
     reader::pool.init(flags.maxThreadNum);
