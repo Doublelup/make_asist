@@ -1200,6 +1200,7 @@ _make(std::string *output, dicts::ref_prefix_dicts *rpd, dicts::ref_noextend_dic
         }
         switch (state){
             case BOL:
+                writeinline('\n');
                 read_tabs(p, end, indent);
                 if (p == end){
                     state = END;
