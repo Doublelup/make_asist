@@ -39,57 +39,192 @@ bool is_name_char(const char c)
 
 // return whether read a name, error indicates syntax error.
 // p point at the char after ')' or '\0'
-bool read_name(const char *&p, std :: string &name, bool &error)
-{
-    char status = 0;
-    // '(' 0, ')' 1, 'space' 2, name_char 3, other 4
-    char t[4][4] = {
-        {1, 5, 0, 5},
-        {5, 4, 1, 2},
-        {5, 4, 3, 2},
-        {5, 4, 3, 5},
+// bool read_name(const char *&p, std :: string &name, bool &error)
+// {
+//     char status = 0;
+//     // '(' 0, ')' 1, 'space' 2, name_char 3, other 4
+//     char t[4][4] = {
+//         {1, 5, 0, 5},
+//         {5, 4, 1, 2},
+//         {5, 4, 3, 2},
+//         {5, 4, 3, 5},
+//     };
+//     char type = 0;
+//     const char *start = nullptr;
+//     const char *end = nullptr;
+//     char pre = 0;
+//     bool ret = false;
+//     while (status != 4 && status != 5){
+//         pre = status;
+//         switch (*p){
+//             case '(':
+//                 type = 0;
+//                 break;
+//             case ')':
+//                 type = 1;
+//                 break;
+//             case ' ':
+//             case '\t':
+//                 type = 2;
+//                 break;
+//             default:
+//                 if (is_name_char(*p)) type = 3;
+//                 else type = 4;
+//                 break;
+//         }
+//         if (type == 4) {
+//             status = 5;
+//             break;
+//         }
+//         status = t[status][type];
+//         if (pre == 1 && status == 2) start = p;
+//         if (pre == 2 && (status == 3 || status == 4)) end = p;
+//         if (!*p){
+//             status = 5;
+//             break;
+//         }
+//         ++p;
+//     }
+//     if (status == 5) error = true;
+//     else if (start && end){
+//         name = {start, static_cast<unsigned long>(end - start)};
+//         ret = true;
+//     }
+//     return ret;
+// }
+
+bool read_name(const char *&p, std :: string &name, bool &error) {
+    /*
+    STATE0: wait for signal for collecting name.
+    STATE1: collect name letters.
+    STATE2: wait for signal for end.
+    END: end.
+    */
+    enum class state {
+        START, STATE0, STATE1, STATE2, END, ERROR,
     };
-    char type = 0;
-    const char *start = nullptr;
-    const char *end = nullptr;
-    char pre = 0;
-    bool ret = false;
-    while (status != 4 && status != 5){
-        pre = status;
-        switch (*p){
-            case '(':
-                type = 0;
-                break;
-            case ')':
-                type = 1;
+    enum class type {
+        SPACE, LPARAM, RPARAM, NAMECHAR, OTHER, END, 
+    };
+    auto readin = [&p]{
+        type ret;
+        switch(*p) {
+            case 0:
+                ret = type::END;
                 break;
             case ' ':
+            case '\n':
             case '\t':
-                type = 2;
+                ret = type::SPACE;
+                ++p;
+                break;
+            case '(':
+                ret = type::LPARAM;
+                ++p;
+                break;
+            case ')':
+                ret = type::RPARAM;
+                ++p;
                 break;
             default:
-                if (is_name_char(*p)) type = 3;
-                else type = 4;
+                if (is_name_char(*p)){
+                    ret = type::NAMECHAR;
+                    ++p;
+                }
+                // Need further handling.
+                else ret = type::OTHER;
                 break;
         }
-        if (type == 4) {
-            status = 5;
+        return ret;
+    };
+    state s = state::START;
+    type t;
+    const char *start = nullptr, * end = nullptr;
+    bool ret = false;
+
+    error = false;
+    while (1) {
+        switch (s) {
+            case state::START:
+                t = readin();
+                switch (t) {
+                    case type::SPACE:
+                        break;
+                    case type::LPARAM:
+                        s = state::STATE0;
+                        break;
+                    default:
+                        s = state::END;
+                        break;
+                }
+                break;
+            case state::STATE0:
+                t = readin();
+                switch(t) {
+                    case type::SPACE:
+                        break;
+                    case type::NAMECHAR:
+                        start = p - 1;
+                        s = state::STATE1;
+                        break;
+                    default:
+                        s = state::ERROR;
+                        break;
+                }
+                break;
+            case state::STATE1:
+                t = readin();
+                switch(t) {
+                    case type::NAMECHAR:
+                        break;
+                    case type::SPACE:
+                        end = p;
+                        s = state::STATE2;
+                        break;
+                    case type::RPARAM:
+                        end = p - 1;
+                        s = state::END;
+                        break;
+                    default:
+                        s = state::ERROR;
+                        break;
+                }
+                break;
+            case state::STATE2:
+                t = readin();
+                switch(t) {
+                    case type::SPACE:
+                        break;
+                    case type::RPARAM:
+                        s = state::END;
+                        break;
+                    default:
+                        s = state::ERROR;
+                        break;
+                }
+                break;
+            case state::ERROR:
+                error = true;
+                ret = false;
+                goto OUT;
+                break;
+            case state::END:
+                if (start && end){
+                    ret = true;
+                    name = {start, static_cast<size_t>(end - start)};
+                }
+                else assert(!start && !end);
+                goto OUT;
+                break;
+            default:
+                [[unlikely]];
+                assert(0);
             break;
         }
-        status = t[status][type];
-        if (pre == 1 && status == 2) start = p;
-        if (pre == 2 && (status == 3 || status == 4)) end = p;
-        if (!*p){
-            status = 5;
-            break;
-        }
-        ++p;
     }
-    if (status == 5) error = true;
-    else if (start && end){
-        name = {start, static_cast<unsigned long>(end - start)};
-        ret = true;
-    }
+
+    OUT:
+
     return ret;
 }
 

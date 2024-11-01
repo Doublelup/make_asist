@@ -11,6 +11,7 @@ printabbr : test.o printabbr.o
 test_context : test_context.o context.o dicts.o reader.o test.o
 make_asist : reader.o dicts.o context.o main.o
 MAKE OBJS += printabbr test_reader make_asist test_context
+RAW CPPFLAGS += -DDEBUG
 
 # threadPool : test_threadPool.o
 # MAKE OBJS += threadPool

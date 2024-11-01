@@ -84,10 +84,17 @@ Context :: jobs_dec()
     return;
 }
 
+#ifndef DEBUG
 static void sig_err()
 {
     Reader::send_error();
 }
+#else
+#define sig_err() ({\
+    fprintf(stderr, "File %s, line %d.\n", __FILE__, __LINE__);\
+    Reader::send_error();\
+})
+#endif
 
 static bool check_err()
 {
@@ -203,21 +210,36 @@ regex_reader(const char* &p, const char* end, int &len, char *buffer)
                 ++p;
                 type = type_interpreter(input);
                 switch (type){
+                    // case _char_t::COLON:
+                    // case _char_t::SPACE:
+                    // case _char_t::TAB:
+                    //     --p;
+                    //     state = END;
+                    //     break;
+                    // case _char_t::BACKSLASH:
+                    //     pre = state;
+                    //     state = ESCAPE;
+                    //     break;
+                    // case _char_t::NEWLINE:
+                    // case _char_t::COMMENT:
+                    // case _char_t::QUOTATION:
+                    //     pre = state;
+                    //     // change here
+                    //     // state = ERROR;
+                    //     state = END;
+                    //     break;
                     case _char_t::COLON:
                     case _char_t::SPACE:
                     case _char_t::TAB:
+                    case _char_t::NEWLINE:
+                    case _char_t::COMMENT:
+                    case _char_t::QUOTATION:
                         --p;
                         state = END;
                         break;
                     case _char_t::BACKSLASH:
                         pre = state;
                         state = ESCAPE;
-                        break;
-                    case _char_t::NEWLINE:
-                    case _char_t::COMMENT:
-                    case _char_t::QUOTATION:
-                        pre = state;
-                        state = ERROR;
                         break;
                     case _char_t::MATHOPRATOR:
                     case _char_t::NAMECHAR:

@@ -1,0 +1,34 @@
+context {
+    defdir (global) {
+        .*test.*\.cpp: $(TEST)/ 
+        .*\.cpp: $(SRC)/ 
+        .*\.h: $(INCLUDE)/ 
+        .*: $(BIN)/ 
+    }
+
+    context {
+        make: test_packer : net.cpp test_packer.cpp connect_info_table.h;
+    }
+
+    context {
+        raw: hello : hello.c hello.h
+    }
+
+    context {
+        defdir (nasm){
+            .*\.s : $(NASM)/
+        }
+        make {
+            vim : vim.c test_vim.c;
+            clear : clear.s;
+        }
+
+        undefdir (nasm)
+        noextend {
+            ^clear$:
+        }
+        make {
+            clear : clear.s;
+        }
+    }
+}
